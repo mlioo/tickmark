@@ -1,0 +1,60 @@
+{
+  "name": "opentopo-companion",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "main": "index.ts",
+  "packageManager": "pnpm@11.16.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "ci": "pnpm typecheck && pnpm lint && pnpm test",
+    "sync:topo": "node scripts/sync-topo.mjs",
+    "pod-install": "./scripts/pod-install.sh",
+    "ios:sim": "./scripts/ios-sim.sh",
+    "ios:device": "./scripts/ios-device.sh",
+    "android:emu": "./scripts/android-emu.sh"
+  },
+  "dependencies": {
+    "@maplibre/maplibre-react-native": "11.3.7",
+    "expo": "~57.0.11",
+    "expo-file-system": "~57.0.2",
+    "expo-haptics": "~57.0.1",
+    "expo-localization": "~57.0.1",
+    "expo-location": "~57.0.8",
+    "expo-media-library": "^57.0.3",
+    "expo-sharing": "~57.0.1",
+    "expo-sqlite": "~57.0.1",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-maps": "1.27.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-view-shot": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "^57.0.1",
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.10"
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "exclude": ["react-native-maps"]
+      },
+      "ios": {
+        "exclude": ["@maplibre/maplibre-react-native"]
+      }
+    }
+  }
+}

@@ -1,0 +1,83 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+
+# Project-local tool sandboxes (Node, pnpm, Ruby/CocoaPods)
+.tools/
+
+# Expo / Metro
+.expo/
+.expo-shared/
+metro-cache/
+*.expo.*
+
+# Build / export outputs
+dist/
+dist-*/
+web-build/
+build/
+*.jsbundle
+*.ipa
+*.apk
+*.aab
+
+# iOS (also covered under ios/.gitignore)
+ios/Pods/
+ios/build/
+ios/DerivedData/
+ios/.xcode.env.local
+**/xcuserdata/
+*.xcuserstate
+*.hmap
+*.ipa
+
+# Android (when present)
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+*.jks
+*.keystore
+
+# Native / signing secrets
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+.env
+.env.*
+!.env.example
+
+# TypeScript / tooling caches
+*.tsbuildinfo
+.turbo/
+.cache/
+
+# Logs & debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.*
+*.log
+
+# OS / editor
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Misc local scratch
+*.local
+!ios/.xcode.env

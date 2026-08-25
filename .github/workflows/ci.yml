@@ -1,0 +1,180 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+      ios: ${{ steps.filter.outputs.ios }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            android:
+              - 'android/**'
+              - 'app.config.ts'
+              - 'plugins/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'react-native.config.js'
+              - 'scripts/android-emu.sh'
+              - 'scripts/ensure-android-tools.sh'
+              - '.github/workflows/ci.yml'
+            ios:
+              - 'ios/**'
+              - 'app.config.ts'
+              - 'plugins/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'react-native.config.js'
+              - 'scripts/ios-sim.sh'
+              - 'scripts/ios-device.sh'
+              - 'scripts/pod-install.sh'
+              - 'scripts/ensure-ios-tools.sh'
+              - '.github/workflows/ci.yml'
+
+  check:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Typecheck
+            command: typecheck
+          - name: Lint
+            command: lint
+          - name: Test
+            command: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm ${{ matrix.command }}
+
+  android:
+    name: Android
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Skip (no Android changes)
+        if: needs.changes.outputs.android != 'true'
+        run: echo "Skipping Android compile — no android/ native-related files changed."
+
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.android == 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: needs.changes.outputs.android == 'true'
+
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.android == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        if: needs.changes.outputs.android == 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+        if: needs.changes.outputs.android == 'true'
+
+      - name: Install JS dependencies
+        if: needs.changes.outputs.android == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Write Android local.properties
+        if: needs.changes.outputs.android == 'true'
+        run: printf 'sdk.dir=%s\n' "$ANDROID_HOME" > android/local.properties
+
+      - name: Assemble Release
+        if: needs.changes.outputs.android == 'true'
+        working-directory: android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+
+  ios:
+    name: iOS
+    needs: changes
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Skip (no iOS changes)
+        if: needs.changes.outputs.ios != 'true'
+        run: echo "Skipping iOS compile — no ios/ native-related files changed."
+
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.ios == 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: needs.changes.outputs.ios == 'true'
+
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.ios == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: ruby/setup-ruby@v1
+        if: needs.changes.outputs.ios == 'true'
+        with:
+          ruby-version: "3.3"
+
+      - name: Install JS dependencies
+        if: needs.changes.outputs.ios == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CocoaPods
+        if: needs.changes.outputs.ios == 'true'
+        run: gem install cocoapods -v 1.17.0 --no-document
+
+      - name: Cache Pods
+        if: needs.changes.outputs.ios == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: pods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: pods-${{ runner.os }}-
+
+      - name: pod install
+        if: needs.changes.outputs.ios == 'true'
+        working-directory: ios
+        run: pod install
+
+      - name: Build Release (simulator)
+        if: needs.changes.outputs.ios == 'true'
+        run: |
+          xcodebuild \
+            -workspace ios/TickMark.xcworkspace \
+            -scheme TickMark \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath /tmp/OpenTopoBuild \
+            CODE_SIGNING_ALLOWED=NO \
+            build
