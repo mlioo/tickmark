@@ -113,10 +113,28 @@ jobs:
         if: needs.changes.outputs.android == 'true'
         run: printf 'sdk.dir=%s\n' "$ANDROID_HOME" > android/local.properties
 
+      # Release currently signs with the debug config (see android/app/build.gradle).
+      # Generate the well-known debug keystore if it was not checked in.
+      - name: Ensure debug keystore
+        if: needs.changes.outputs.android == 'true'
+        working-directory: android/app
+        run: |
+          if [[ ! -f debug.keystore ]]; then
+            keytool -genkeypair \
+              -keystore debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Assemble Release
         if: needs.changes.outputs.android == 'true'
         working-directory: android
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --warning-mode all
 
   ios:
     name: iOS

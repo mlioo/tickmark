@@ -40,6 +40,8 @@ android/.gradle/
 android/local.properties
 *.jks
 *.keystore
+# Standard RN/Expo debug keystore (well-known password "android") — needed for CI assembleRelease.
+!android/app/debug.keystore
 
 # Native / signing secrets
 *.p8
